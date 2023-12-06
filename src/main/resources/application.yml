@@ -1,0 +1,32 @@
+
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:tasktracker
+    generate-unique-name: false
+    name: tasktracker
+    username: testuser
+    password: testpass
+  h2:
+    console:
+      enabled: on
+
+
+
+api:
+  version: v100
+  prefix: /api/${api.version}
+  devPrefix: ${api.prefix}/dev
+  teamleadPrefix: ${api.prefix}/tl
+  adminPrefix: ${api.prefix}/admin
+server:
+  port: 16116
+  ssl:
+    key-store: src/main/resources/abbtestkeystore.p12
+    key-store-password: testpass
+    keyStoreType: PKCS12
+    keyAlias: abbtestkey
