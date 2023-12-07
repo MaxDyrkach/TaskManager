@@ -203,8 +203,6 @@ public class UserDataServiceTest {
         dev3.getTaskGroups().add(easy);
         entityManager.persist(dev1);
         entityManager.persist(dev3);
-        System.out.println(dev1.getTaskGroups());
-        System.out.println(dev3.getTaskGroups());
         assertEquals("{ \"userName\": \"Tom\", \r\n" +
                 " \"addedGroup\": \"Easy\",\r\n" +
                 " \"currentGroups\": \"[Easy, Hard]\"}", userDataService.addOrDeleteUserGroup(dev3,egaDto));
