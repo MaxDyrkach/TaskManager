@@ -165,21 +165,11 @@ public class UserDataServiceTest {
     public void editSelfTeamleadTest() {
         String uname = "Tom";
         entityManager.refresh(dev1);
-//        System.out.println(dev1.getTaskGroups());
         dev1.getTaskGroups().remove(easy);
         entityManager.persist(dev1);
-//        System.out.println(entityManager.getEntityManager().contains(easy));;
-//        System.out.println(dev1);
-//        System.out.println(easy.getId());
         EmployeeDto edto = EmployeeDto.builder().userName("Tom_H").name("Tom Holland")
                 .password("passw").taskGroups(new HashSet<>(Set.of(easy.getId()))).build();
         assertEquals("Updated", userDataService.editSelfTeamlead(uname,edto));
-//        System.out.println(dev1);
-//        System.out.println(dev1.getTaskGroups());
-//
-//       // entityManager.refresh(dev1);
-//        System.out.println(dev1);
-//        System.out.println(dev1.getTaskGroups());
         assertTrue(dev1.getTaskGroups().contains(easy) && dev1.getTaskGroups().size()==1);
         assertThrows(AccessDeniedException.class, ()-> userDataService.editSelfDeveloper(uname,edto));
     }
