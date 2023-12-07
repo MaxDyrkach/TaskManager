@@ -158,8 +158,10 @@ public class UserDataService {
             throws AccessDeniedException, IllegalArgumentException {
         TaskGroup tg = taskGroupRepo.findTaskGroupByName(dto.getGroupName()).orElseThrow(() -> new AccessDeniedException("No such group"));
         Employee e = employeeRepo.findEmployeeByUserNameIs(dto.getUserName()).orElseThrow(() -> new AccessDeniedException("User " + dto.getUserName() + " not found"));
-        if (((e.getRoles().contains(Employee.Role.ADMIN) || e.getRoles().contains(Employee.Role.TEAMLEAD)) && !principal.getRoles().contains(Employee.Role.ADMIN)) ||
-                !principal.getTaskGroups().contains(tg)) throw new AccessDeniedException("Unauthorized");
+        //если принципал не админ или тимлид или если он тимлид, но не в группе
+        System.out.println("ADM " + principal.getRoles().contains(Employee.Role.ADMIN));
+        if (!e.getRoles().contains(Employee.Role.ADMIN)
+                && !(principal.getRoles().contains(Employee.Role.TEAMLEAD) && principal.getTaskGroups().contains(tg))) throw new AccessDeniedException("Unauthorized");
         return switch (dto.getAction()) {
             case NEW -> {
                 if (!e.getTaskGroups().contains(tg)) {

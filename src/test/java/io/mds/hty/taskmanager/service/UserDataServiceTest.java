@@ -4,6 +4,7 @@ import io.mds.hty.taskmanager.common.Action;
 import io.mds.hty.taskmanager.model.dao.Employee;
 import io.mds.hty.taskmanager.model.dao.Task;
 import io.mds.hty.taskmanager.model.dao.TaskGroup;
+import io.mds.hty.taskmanager.model.dto.EmlpoyeeGroupActionDto;
 import io.mds.hty.taskmanager.model.dto.EmployeeDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ public class UserDataServiceTest {
                 .taskGroups(new HashSet<>())
                 .build();
         dev3 = Employee.builder().userName("Alex").password("A1").personalNumber(3L)
-                .roles(Stream.of(Employee.Role.MIDDLE_DEVELOPER).collect(Collectors.toCollection(HashSet::new)))
+                .roles(Stream.of(Employee.Role.TEAMLEAD).collect(Collectors.toCollection(HashSet::new)))
                 .taskGroups(new HashSet<>())
                 .tasksAssigned(new HashSet<>()).build();
         dev1.getTaskGroups().add(easy);
@@ -105,7 +106,7 @@ public class UserDataServiceTest {
         assertEquals("Alex", dev3.getUsername());
         assertEquals("A1", dev3.getPassword());
         assertEquals(3L, dev3.getPersonalNumber());
-        assertEquals(Stream.of(Employee.Role.MIDDLE_DEVELOPER).collect(Collectors.toSet()), dev3.getRoles());
+        assertEquals(Stream.of(Employee.Role.TEAMLEAD).collect(Collectors.toSet()), dev3.getRoles());
         assertEquals(new HashSet<>(), dev3.getTasksAssigned());
         assertEquals(new HashSet<>(), dev3.getTaskGroups());
     }
@@ -173,4 +174,52 @@ public class UserDataServiceTest {
         assertTrue(dev1.getTaskGroups().contains(easy) && dev1.getTaskGroups().size()==1);
         assertThrows(AccessDeniedException.class, ()-> userDataService.editSelfDeveloper(uname,edto));
     }
+
+    @Test
+    public void getUserTasksVerboseTest() {
+        String verboseAssigned = "Assigned";
+        String verboseCreated =  "Created";
+        Task t1 = Task.builder().header("t1").description("descr1").group(easy).build();
+        Task t2 = Task.builder().header("t2").description("descr2").group(hard).build();
+        entityManager.persist(t1);
+        entityManager.persist(t2);
+        entityManager.refresh(dev3);
+        entityManager.refresh(dev1);
+        dev1.getTasksAssigned().addAll(Set.of(t1,t2));
+        dev3.getTasksCreated().addAll(Set.of(t1,t2));
+        assertEquals(Set.of(t1,t2), userDataService.getUserTasksVerbose("Tom", verboseAssigned));
+        assertEquals(Set.of(t1,t2), userDataService.getUserTasksVerbose("Alex", verboseCreated));
+        assertThrows(IllegalArgumentException.class, ()-> userDataService.getUserTasksVerbose("Alex", "WRONG"));
+        assertThrows(AccessDeniedException.class, ()-> userDataService.getUserTasksVerbose("Susanna", verboseAssigned));
+    }
+
+    @Test
+    public void addOrDeleteUserGroupTest() {
+        EmlpoyeeGroupActionDto egaDto = EmlpoyeeGroupActionDto.builder()
+                .userName(dev1.getUsername()).groupName(easy.getName()).action(Action.NEW).build();
+        entityManager.refresh(dev3);
+        entityManager.refresh(dev1);
+        dev1.getTaskGroups().remove(easy);
+        dev3.getTaskGroups().add(easy);
+        entityManager.persist(dev1);
+        entityManager.persist(dev3);
+        System.out.println(dev1.getTaskGroups());
+        System.out.println(dev3.getTaskGroups());
+        assertEquals("{ \"userName\": \"Tom\", \r\n" +
+                " \"addedGroup\": \"Easy\",\r\n" +
+                " \"currentGroups\": \"[Easy, Hard]\"}", userDataService.addOrDeleteUserGroup(dev3,egaDto));
+        egaDto.setAction(Action.DELETE);
+        assertEquals("{ \"userName\": \"Tom\", \r\n" +
+                " \"deletedGroup\": \"Easy\",\r\n" +
+                " \"currentGroups\": \"[Hard]\"}", userDataService.addOrDeleteUserGroup(dev3,egaDto));
+        assertEquals("{\"message\": \"User is not in the group\"}", userDataService.addOrDeleteUserGroup(dev3,egaDto));
+        egaDto.setAction(Action.NEW);
+        egaDto.setGroupName(hard.getName());
+        dev3.getTaskGroups().add(hard);
+        assertEquals("{\"message\": \"User is in the group already\"}", userDataService.addOrDeleteUserGroup(dev3,egaDto));
+        assertThrows(AccessDeniedException.class, ()-> userDataService.addOrDeleteUserGroup(dev2,egaDto));
+
+
+    }
+
 }
