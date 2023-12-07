@@ -13,10 +13,10 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -48,7 +48,7 @@ public class UserDataService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public Employee editAnyEmployeeDataByUserName(EmployeeDto dto, Action action) throws UsernameNotFoundException {
+    public Employee editAnyEmployeeDataByUserName(EmployeeDto dto, Action action)  {
         Employee e;
         switch (action) {
             case NEW -> {
@@ -57,7 +57,7 @@ public class UserDataService {
                 e = new Employee();
             }
             case EDIT -> {
-                e = employeeRepo.findByUserName(dto.getUserName())
+                e = employeeRepo.findEmployeeByUserNameIs(dto.getUserName())
                         .orElseThrow(() -> new IllegalArgumentException("User with Username " + dto.getUserName() + " not found"));
             }
             default -> throw new IllegalArgumentException("Action must be NEW or EDIT");
@@ -86,64 +86,68 @@ public class UserDataService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
-    public Optional<Employee> getEmployeeData(String userName) throws UsernameNotFoundException {
-        return employeeRepo.findByUserName(userName);
+    public Optional<Employee> getEmployeeData(String userName)  {
+        return employeeRepo.findEmployeeByUserNameIs(userName);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
-    public Optional<Employee> getUserDataByEmployeeGroups(Employee e, String userName) throws UsernameNotFoundException {
-        return employeeRepo.findByUserNameAndGroupsIn(userName, e.getTaskGroups());
+    public Optional<Employee> getUserDataByEmployeeGroups(Employee e, String userName) throws IllegalArgumentException {
+        Employee fromBase = employeeRepo.findEmployeeByUserNameIs(userName).orElseThrow(()-> new IllegalArgumentException("No such user"));
+                if(fromBase.getTaskGroups().stream().anyMatch(tg-> e.getTaskGroups().contains(tg))) return Optional.of(fromBase);
+                return Optional.empty();
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
-    public Set<Employee> getGroupDevelopersData(Employee e, Long groupId) throws UsernameNotFoundException {
-        return taskGroupRepo.findTaskGroupByIdAndAndUsersContainingOrderByUsers(e, groupId).orElseThrow(() -> new AccessDeniedException("No such group"))
-                .getUsers().stream().filter(u -> u.getRoles().contains(Employee.Role.JUNIOR_DEVELOPER) || u.getRoles().contains(Employee.Role.MIDDLE_DEVELOPER)
-                        || u.getRoles().contains(Employee.Role.SENIOR_DEVELOPER))
+    public Set<Employee> getGroupDevelopersData(Employee e, Long groupId)  {
+        return taskGroupRepo.findTaskGroupByIdAndUsersContaining(groupId, e).orElseThrow(() -> new AccessDeniedException("No such group"))
+                .getUsers().stream().filter(u -> u.getRoles().stream()
+                        .anyMatch(r-> Set.of(Employee.Role.JUNIOR_DEVELOPER, Employee.Role.MIDDLE_DEVELOPER, Employee.Role.SENIOR_DEVELOPER).contains(r)))
                 .collect(Collectors.toSet());
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public String editSelfDeveloper(EmployeeDto employeeDto) throws UsernameNotFoundException {
-        Employee e = employeeRepo.findByUserName(employeeDto.getUserName())
-                .orElseThrow(() -> new UsernameNotFoundException("User " + employeeDto.getUserName() + " not found"));
-        String newName = employeeDto.getName();
+    public String editSelfDeveloper(String userName, EmployeeDto newParams)  {
+        Employee e = employeeRepo.findEmployeeByUserNameIs(userName)
+                .orElseThrow(() -> new AccessDeniedException("User " + userName + " not found"));
+        String newName = newParams.getName();
         if (newName != null && !newName.isBlank()) e.setName(newName);
-        String newUserName = employeeDto.getUserName();
+        String newUserName = newParams.getUserName();
         if (newUserName != null && !newUserName.isBlank()) e.setUserName(newUserName);
-        if (employeeDto.getPassword() != null && !passwordEncoder.matches(employeeDto.getPassword(), e.getPassword())) {
-            e.setPassword(passwordEncoder.encode(employeeDto.getPassword()));
+        if (newParams.getPassword() != null && !passwordEncoder.matches(newParams.getPassword(), e.getPassword())) {
+            e.setPassword(passwordEncoder.encode(newParams.getPassword()));
         }
         return "Updated";
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
-    public String editSelfTeamlead(EmployeeDto dto) throws UsernameNotFoundException {
-        Employee e = employeeRepo.findByUserName(dto.getUserName())
-                .orElseThrow(() -> new UsernameNotFoundException("User " + dto.getUserName() + " not found"));
-        String newName = dto.getName();
+    @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
+    public String editSelfTeamlead(String userName, EmployeeDto newParams)  {
+        Employee e = employeeRepo.findEmployeeByUserNameIs(userName)
+                .orElseThrow(() -> new AccessDeniedException("User " + userName + " not found"));
+        String newName = newParams.getName();
         if (newName != null && !newName.isBlank()) e.setName(newName);
-        String newUserName = dto.getUserName();
+        String newUserName = newParams.getUserName();
         if (newUserName != null && !newUserName.isBlank()) e.setUserName(newUserName);
-        if (dto.getPassword() != null && !passwordEncoder.matches(dto.getPassword(), e.getPassword())) {
-            e.setPassword(passwordEncoder.encode(dto.getPassword()));
+        if (newParams.getPassword() != null) {
+            e.setPassword(passwordEncoder.encode(newParams.getPassword()));
         }
-        if (dto.getTaskGroups() != null && !e.getTaskGroups().stream().map(TaskGroup::getId).collect(Collectors.toSet()).equals(dto.getTaskGroups())) {
-            Set<TaskGroup> newGrps = new HashSet<>(taskGroupRepo.findAllById(dto.getTaskGroups()));
-            if (!newGrps.isEmpty()) e.setTaskGroups(newGrps);
+        if (newParams.getTaskGroups() != null) {
+            Set<TaskGroup> newGrps = new HashSet<>(taskGroupRepo.findAllById(newParams.getTaskGroups()));
+            if (!newGrps.isEmpty()){
+                e.setTaskGroups(newGrps);
+            }
         }
-        employeeRepo.save(e);
+        employeeRepo.saveAndFlush(e);
         return "Updated";
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
-    public Set<Task> getUserTasksVerbose(String userName, String verbose) throws UsernameNotFoundException {
+    public Set<Task> getUserTasksVerbose(String userName, String verbose)  {
         return switch (verbose) {
-            case "Assigned" -> employeeRepo.findByUserName(userName)
-                    .orElseThrow(() -> new UsernameNotFoundException("User " + userName + " not found"))
+            case "Assigned" -> employeeRepo.findEmployeeByUserNameIs(userName)
+                    .orElseThrow(() -> new AccessDeniedException("User " + userName + " not found"))
                     .getTasksAssigned();
-            case "Created" -> employeeRepo.findByUserName(userName)
-                    .orElseThrow(() -> new UsernameNotFoundException("User " + userName + " not found"))
+            case "Created" -> employeeRepo.findEmployeeByUserNameIs(userName)
+                    .orElseThrow(() -> new AccessDeniedException("User " + userName + " not found"))
                     .getTasksCreated();
             default -> throw new IllegalArgumentException("Verbose must be Assigned or Created");
         };
@@ -151,9 +155,9 @@ public class UserDataService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public String addOrDeleteUserGroup(Employee principal, EmlpoyeeGroupActionDto dto)
-            throws UsernameNotFoundException, AccessDeniedException, IllegalArgumentException {
+            throws AccessDeniedException, IllegalArgumentException {
         TaskGroup tg = taskGroupRepo.findTaskGroupByName(dto.getGroupName()).orElseThrow(() -> new AccessDeniedException("No such group"));
-        Employee e = employeeRepo.findByUserName(dto.getUserName()).orElseThrow(() -> new UsernameNotFoundException("User " + dto.getUserName() + " not found"));
+        Employee e = employeeRepo.findEmployeeByUserNameIs(dto.getUserName()).orElseThrow(() -> new AccessDeniedException("User " + dto.getUserName() + " not found"));
         if (((e.getRoles().contains(Employee.Role.ADMIN) || e.getRoles().contains(Employee.Role.TEAMLEAD)) && !principal.getRoles().contains(Employee.Role.ADMIN)) ||
                 !principal.getTaskGroups().contains(tg)) throw new AccessDeniedException("Unauthorized");
         return switch (dto.getAction()) {

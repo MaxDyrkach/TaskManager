@@ -71,7 +71,7 @@ public class StatisticsService {
                 && !principal.getUsername().equals(userName)){
             throw new AccessDeniedException("Forbidden");
         }
-        Employee user = employeeRepo.findByUserName(userName).orElseThrow(() -> new UsernameNotFoundException("User with Username " + userName + " not found"));
+        Employee user = employeeRepo.findEmployeeByUserNameIs(userName).orElseThrow(() -> new UsernameNotFoundException("User with Username " + userName + " not found"));
         if(!principal.getRoles().contains(Employee.Role.ADMIN)
                 && principal.getTaskGroups().stream().noneMatch(tg -> user.getTaskGroups().contains(tg))){
             throw new AccessDeniedException("Forbidden");

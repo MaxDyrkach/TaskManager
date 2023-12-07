@@ -31,7 +31,7 @@ public class TaskGroup {
     Set<Task> tasks;
 
     @JsonIgnore
-    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, mappedBy = "taskGroups")
     Set<Employee> users;
 
 }

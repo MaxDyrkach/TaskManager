@@ -41,14 +41,14 @@ public class DeveloperController {
     }
 
 
-    @PostMapping(value = "/data", consumes = "application/json")
-    public ResponseEntity<String> editSelfData(@Valid @RequestBody EmployeeDto employeeDto) throws AccessDeniedException {
+    @PostMapping(value = "/data/{uname}", consumes = "application/json")
+    public ResponseEntity<String> editSelfData(@Valid @RequestBody EmployeeDto employeeDto, @Valid @PathVariable String uname) throws AccessDeniedException {
         Authentication auth = getAuthentication();
         Employee e = (Employee) auth.getPrincipal();
         if (!e.getUsername().equals(employeeDto.getUserName()))
             throw new AccessDeniedException("You may see your data only");
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(userDataService.editSelfDeveloper(employeeDto));
+                .body(userDataService.editSelfDeveloper(uname, employeeDto));
 
     }
 

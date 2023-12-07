@@ -57,7 +57,7 @@ public class TeamleadController {
             Employee e = (Employee) auth.getPrincipal();
             if (!e.getUsername().equals(employeeDto.getUserName())) throw new AccessDeniedException("Unauthorized");
             return ResponseEntity.status(HttpStatus.ACCEPTED)
-                    .body(userDataService.editSelfTeamlead(employeeDto));
+                    .body(userDataService.editSelfTeamlead(e.getUsername(), employeeDto));
     }
 
     @PostMapping("/group/createorupdate")

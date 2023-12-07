@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static io.mds.hty.taskmanager.common.Utils.nonEmpty;
 
@@ -117,8 +118,12 @@ public class TaskService {
                         .group(taskGroupRepo.findTaskGroupByName(tDto.getGroup())
                                 .orElseThrow(() -> new IllegalArgumentException("No such group")))
                         .employeeCreated(principal)
-                        .employeeAssigned(employeeRepo.findByUserNameAndRolesIn(tDto.getEmployeeAssigned(), Set.of(Role.JUNIOR_DEVELOPER, Role.MIDDLE_DEVELOPER, Role.SENIOR_DEVELOPER))
-                                .orElseThrow(() -> new IllegalArgumentException("No such employee")))
+                        .employeeAssigned(Stream.of(employeeRepo.findEmployeeByUserNameIs(tDto.getEmployeeAssigned())
+                                        .orElseThrow(() -> new IllegalArgumentException("No such employee")))
+                                .filter(e -> e.getRoles().stream()
+                                        .anyMatch(r -> Set.of(Role.JUNIOR_DEVELOPER, Role.MIDDLE_DEVELOPER, Role.SENIOR_DEVELOPER).contains(r)))
+                                .findFirst().orElseThrow(() -> new IllegalArgumentException("No such employee")
+                                ))
                         .header(tDto.getHeader()).description(tDto.getDescription()).complexity(tDto.getComplexity())
                         .priority(tDto.getPriority()).plannedStart(tDto.getPlannedStart()).plannedFinish(tDto.getPlannedFinish())
                         .comments(new HashSet<>()).dateCreated(Instant.now()).isCompleted(false)
@@ -137,58 +142,58 @@ public class TaskService {
                     t.setGroup(ng);
                     updated = true;
                 }
-                if(nonEmpty(tDto.getEmployeeAssigned()) && !t.getEmployeeAssigned().getUsername().equals(tDto.getEmployeeAssigned())){
-                    Employee ne = employeeRepo.findByUserName(tDto.getEmployeeAssigned()).orElseThrow(() -> new IllegalArgumentException("No such user "+ tDto.getEmployeeAssigned()));
+                if (nonEmpty(tDto.getEmployeeAssigned()) && !t.getEmployeeAssigned().getUsername().equals(tDto.getEmployeeAssigned())) {
+                    Employee ne = employeeRepo.findEmployeeByUserNameIs(tDto.getEmployeeAssigned()).orElseThrow(() -> new IllegalArgumentException("No such user " + tDto.getEmployeeAssigned()));
                     t.setEmployeeAssigned(ne);
                     updated = true;
                 }
-                if(nonEmpty(tDto.getHeader())){
+                if (nonEmpty(tDto.getHeader())) {
                     t.setHeader(tDto.getHeader());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getDescription())){
+                if (nonEmpty(tDto.getDescription())) {
                     t.setDescription(tDto.getDescription());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getPriority())){
+                if (nonEmpty(tDto.getPriority())) {
                     t.setPriority(tDto.getPriority());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getComplexity())){
+                if (nonEmpty(tDto.getComplexity())) {
                     t.setComplexity(tDto.getComplexity());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getPlannedStart())){
+                if (nonEmpty(tDto.getPlannedStart())) {
                     t.setPlannedStart(tDto.getPlannedStart());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getPlannedFinish())){
+                if (nonEmpty(tDto.getPlannedFinish())) {
                     t.setPlannedFinish(tDto.getPlannedFinish());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getStatus())){
+                if (nonEmpty(tDto.getStatus())) {
                     t.setStatus(Task.TaskStatus.valueOf(tDto.getStatus()));
                     updated = true;
                 }
-                if(nonEmpty(tDto.getProgress())){
+                if (nonEmpty(tDto.getProgress())) {
                     t.setProgress(tDto.getProgress());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getStarted())){
+                if (nonEmpty(tDto.getStarted())) {
                     t.setStarted(tDto.getStarted());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getIsCompleted())){
+                if (nonEmpty(tDto.getIsCompleted())) {
                     t.setIsCompleted(tDto.getIsCompleted());
                     updated = true;
                 }
-                if(nonEmpty(tDto.getCompleted())){
+                if (nonEmpty(tDto.getCompleted())) {
                     t.setCompleted(tDto.getCompleted());
                     updated = true;
                 }
                 taskRepo.save(t);
                 String edited = updated ? "Edited" : "Not edited";
-                yield "{\"task\": \""+ edited+"\", \r\n\"text\": \"" + t + "\"}";
+                yield "{\"task\": \"" + edited + "\", \r\n\"text\": \"" + t + "\"}";
             }
             case DELETE -> {
                 if (!principal.getRoles().contains(Role.ADMIN) && principal.getTaskGroups().stream().noneMatch(tg -> tg.getName().equals(tDto.getGroup()))) {

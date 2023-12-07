@@ -1,8 +1,6 @@
 package io.mds.hty.taskmanager.repo;
 
 import io.mds.hty.taskmanager.model.dao.Employee;
-import io.mds.hty.taskmanager.model.dao.TaskGroup;
-import io.mds.hty.taskmanager.model.dto.CommonStatDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -16,10 +14,7 @@ import java.util.Set;
 public interface EmployeeRepo extends JpaRepository<Employee, Long> {
 
 
-    Optional<Employee> findByUserName(String name);
-
-    @Query("SELECT e FROM Employee e WHERE e.userName= :name AND e.taskGroups IN :g")
-    Optional<Employee> findByUserNameAndGroupsIn(String name, Set<TaskGroup> g);
+    Optional<Employee> findEmployeeByUserNameIs(String name);
 
     @Query("SELECT e FROM Employee e WHERE e.userName= :name AND e.roles IN :r")
     Optional<Employee> findByUserNameAndRolesIn(String name, Set<Employee.Role> r);
@@ -44,7 +39,6 @@ public interface EmployeeRepo extends JpaRepository<Employee, Long> {
             " WHERE FUNCTION ('date_trunc', 'DAY', t.dateCreated) between :start AND :end " +
             "AND t.isCompleted = true group by e")
     Double getAverageFinishedTasksAssignedOnEmployee(Instant start, Instant end);
-
 
 
     @Query(value = "SELECT count(t) FROM Employee e INNER JOIN Task t ON t.employeeAssigned=e" +

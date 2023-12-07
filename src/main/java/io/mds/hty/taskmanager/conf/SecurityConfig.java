@@ -13,12 +13,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.util.Optional;
-
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -32,7 +28,7 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService(EmployeeRepo repository) {
         return username -> {
-            Optional<Employee> userOp = repository.findByUserName(username);
+            Optional<Employee> userOp = repository.findEmployeeByUserNameIs(username);
             return userOp.orElseThrow(() -> new UsernameNotFoundException("User " + username + " not found"));
         };
     }

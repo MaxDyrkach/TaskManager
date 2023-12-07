@@ -9,10 +9,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.security.PrivateKey;
 import java.util.*;
 
+import static jakarta.persistence.CascadeType.*;
+
 @Entity
 @Table(name = "app_users")
 @Data
-@EqualsAndHashCode(of = {"id","personalNumber"})
+@ToString(of = {"personalNumber","name","userName"})
+@EqualsAndHashCode(of = {"id"})
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -45,15 +48,15 @@ public class Employee implements UserDetails {
 
 
     @JsonIncludeProperties(value = {"name"})
-    @ManyToMany( cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {PERSIST, REFRESH, MERGE} )
     private Set<TaskGroup> taskGroups;
 
     @JsonIgnore
-    @OneToMany( mappedBy = "employeeCreated", cascade = CascadeType.PERSIST)
+    @OneToMany( mappedBy = "employeeCreated", cascade = PERSIST)
     private Set<Task> tasksCreated;
 
     @JsonIgnore
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "employeeAssigned", cascade = CascadeType.PERSIST)
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "employeeAssigned", cascade = PERSIST)
     private Set<Task> tasksAssigned;
 
 
