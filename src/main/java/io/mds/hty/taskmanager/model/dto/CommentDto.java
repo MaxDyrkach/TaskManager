@@ -1,11 +1,7 @@
 package io.mds.hty.taskmanager.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonIncludeProperties;
 import io.mds.hty.taskmanager.model.dao.Employee;
-import io.mds.hty.taskmanager.model.dao.Task;
-import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -24,10 +20,10 @@ public class CommentDto {
     @NotNull
     private Long task;
     private Instant dateTime;
-    @NotNull
+    @NotBlank
     private String header;
     private Integer onProgress;
-    @NotNull
+    @NotBlank
     private String text;
 
 }

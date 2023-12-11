@@ -1,6 +1,6 @@
 package io.mds.hty.taskmanager.controller;
 
-import io.mds.hty.taskmanager.common.Action;
+import io.mds.hty.taskmanager.model.dto.Action;
 import io.mds.hty.taskmanager.model.dao.Employee;
 import io.mds.hty.taskmanager.model.dao.Task;
 import io.mds.hty.taskmanager.model.dto.*;
@@ -8,17 +8,23 @@ import io.mds.hty.taskmanager.service.StatisticsService;
 import io.mds.hty.taskmanager.service.TaskService;
 import io.mds.hty.taskmanager.service.UserDataService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.AccessDeniedException;
-
+@Slf4j
+@Validated
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_SENIOR_DEVELOPER', 'ROLE_MIDDLE_DEVELOPER', 'ROLE_JUNIOR_DEVELOPER')")
 @RequestMapping(path = "${api.devPrefix}", produces = "application/json")
@@ -42,7 +48,8 @@ public class DeveloperController {
 
 
     @PostMapping(value = "/data/{uname}", consumes = "application/json")
-    public ResponseEntity<String> editSelfData(@Valid @RequestBody EmployeeDto employeeDto, @Valid @PathVariable String uname) throws AccessDeniedException {
+    public ResponseEntity<String> editSelfData(@Valid @RequestBody EmployeeDto employeeDto,
+                                               @Valid @PathVariable String uname) throws AccessDeniedException {
         Authentication auth = getAuthentication();
         Employee e = (Employee) auth.getPrincipal();
         if (!e.getUsername().equals(employeeDto.getUserName()))
@@ -59,7 +66,7 @@ public class DeveloperController {
     }
 
     @PostMapping("/tasks")
-    public ResponseEntity<?> getEmployeeFinishedTasks(@Valid Boolean finished) throws AccessDeniedException {
+    public ResponseEntity<?> getEmployeeFinishedTasks( @RequestBody Boolean finished) throws AccessDeniedException {
         Authentication authentication = getAuthentication();
         Employee e = (Employee) authentication.getPrincipal();
         return ResponseEntity
@@ -67,7 +74,7 @@ public class DeveloperController {
     }
 
     @GetMapping("/task/byid/{id}")
-    public ResponseEntity<?> getEmployeeTaskById(@Valid @PathVariable Long id) throws AccessDeniedException {
+    public ResponseEntity<?> getEmployeeTaskById(@Valid @NotNull @PathVariable("id") Long id) throws AccessDeniedException {
         Authentication authentication = getAuthentication();
         Employee e = (Employee) authentication.getPrincipal();
         return ResponseEntity.ok(taskService.getEmployeeTaskById(e.getId(), id)
@@ -92,9 +99,10 @@ public class DeveloperController {
         throw new AccessDeniedException("Unauthorized");
     }
 
-    @PostMapping(value = "/comment/leave/ontask/{id}", consumes = "application/json")
-    public ResponseEntity<String> leaveCommentOnTask(@Valid @RequestBody CommentDto commentDto) throws AccessDeniedException {
-            Authentication authentication = getAuthentication();
+    @PostMapping(value = "/comment/leave", consumes = "application/json")
+    public ResponseEntity<String> leaveCommentOnTask(@Valid @RequestBody CommentDto commentDto) throws AccessDeniedException, MethodArgumentNotValidException {
+
+        Authentication authentication = getAuthentication();
             Employee e = (Employee) authentication.getPrincipal();
             return ResponseEntity.ok(taskService.commentCud(e, commentDto, Action.NEW));
     }

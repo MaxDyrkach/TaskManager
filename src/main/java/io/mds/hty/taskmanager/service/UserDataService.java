@@ -1,6 +1,6 @@
 package io.mds.hty.taskmanager.service;
 
-import io.mds.hty.taskmanager.common.Action;
+import io.mds.hty.taskmanager.model.dto.Action;
 import io.mds.hty.taskmanager.model.dao.Employee;
 import io.mds.hty.taskmanager.model.dao.Task;
 import io.mds.hty.taskmanager.model.dao.TaskGroup;

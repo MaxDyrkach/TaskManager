@@ -4,7 +4,7 @@ import io.mds.hty.taskmanager.model.dao.Comment;
 import io.mds.hty.taskmanager.model.dao.Employee;
 import io.mds.hty.taskmanager.model.dao.Employee.Role;
 import io.mds.hty.taskmanager.model.dao.Task;
-import io.mds.hty.taskmanager.common.Action;
+import io.mds.hty.taskmanager.model.dto.Action;
 import io.mds.hty.taskmanager.model.dao.TaskGroup;
 import io.mds.hty.taskmanager.model.dto.CommentDto;
 import io.mds.hty.taskmanager.model.dto.TaskDto;
@@ -55,7 +55,7 @@ public class TaskService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED, readOnly = true)
-    public Set<Task> getEmployeeFinishedTasks(Employee e, Boolean finished) throws UsernameNotFoundException {
+    public Set<Task> getEmployeeFinishedTasks(Employee e, Boolean finished) throws AccessDeniedException {
         return taskRepo.findAllByEmployeeAssignedAndIsCompleted(e, finished);
     }
 

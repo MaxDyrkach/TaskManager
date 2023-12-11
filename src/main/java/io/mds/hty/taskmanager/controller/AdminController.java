@@ -1,6 +1,6 @@
 package io.mds.hty.taskmanager.controller;
 
-import io.mds.hty.taskmanager.common.Action;
+import io.mds.hty.taskmanager.model.dto.Action;
 import io.mds.hty.taskmanager.model.dao.Employee;
 import io.mds.hty.taskmanager.model.dto.CommonStatDto;
 import io.mds.hty.taskmanager.model.dto.EmployeeDto;

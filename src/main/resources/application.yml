@@ -15,6 +15,9 @@ spring:
     console:
       enabled: on
 
+  security:
+    filter:
+      order: 0
 
 
 api:
